@@ -127,11 +127,15 @@
 #include "application_manager/commands/mobile/send_location_response.h"
 #include "interfaces/MOBILE_API.h"
 
+//Huaguoping-Add-20150901
+#include "application_manager/commands/mobile/displaytext_request.h"
+#include "application_manager/commands/mobile/displaytext_response.h"
+//Huaguoping-Add-20150901
+
 namespace application_manager {
 
-commands::Command *MobileCommandFactory::CreateCommand(
-    const commands::MessageSharedPtr& message,
-    commands::Command::CommandOrigin origin) {
+commands::Command *MobileCommandFactory::CreateCommand(const commands::MessageSharedPtr& message,commands::Command::CommandOrigin origin) 
+{
 
   switch ((*message)[strings::params][strings::function_id].asInt()) {
     case mobile_apis::FunctionID::RegisterAppInterfaceID: {
@@ -379,15 +383,18 @@ commands::Command *MobileCommandFactory::CreateCommand(
       }
       break;
     }
-    case mobile_apis::FunctionID::ScrollableMessageID: {
-      if ((*message)[strings::params][strings::message_type]
-          == static_cast<int>(application_manager::MessageType::kResponse)) {
-        return new commands::ScrollableMessageResponse(message);
-      } else {
-        return new commands::ScrollableMessageRequest(message);
-      }
-      break;
-    }
+    case mobile_apis::FunctionID::ScrollableMessageID: 
+	{
+		if((*message)[strings::params][strings::message_type]== static_cast<int>(application_manager::MessageType::kResponse)) 
+		{
+			return new commands::ScrollableMessageResponse(message);
+		} 
+		else 
+		{
+			return new commands::ScrollableMessageRequest(message);
+		}
+		break;
+	}
     case mobile_apis::FunctionID::AlertManeuverID: {
       if ((*message)[strings::params][strings::message_type]
           == static_cast<int>(application_manager::MessageType::kResponse)) {
@@ -460,7 +467,23 @@ commands::Command *MobileCommandFactory::CreateCommand(
       }
       break;
     }
-    case mobile_apis::FunctionID::SystemRequestID: {
+	
+//Huaguoping-Add-20150901	
+	case mobile_apis::FunctionID::DisplayTextID: 
+	{
+		if((*message)[strings::params][strings::message_type]== static_cast<int>(application_manager::MessageType::kResponse)) 
+		{
+			return new commands::DisplayTextResponse(message);
+		} 
+		else 
+		{
+			return new commands::DisplayTextRequest(message);
+		}
+		break;
+    }
+//Huaguoping-Add-20150901	
+    
+	case mobile_apis::FunctionID::SystemRequestID: {
       if ((*message)[strings::params][strings::message_type]
           == static_cast<int>(application_manager::MessageType::kResponse)) {
         return new commands::SystemResponse(message);

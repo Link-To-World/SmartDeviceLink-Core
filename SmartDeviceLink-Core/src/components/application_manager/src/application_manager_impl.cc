@@ -1268,162 +1268,152 @@ void ApplicationManagerImpl::TerminateRequest(uint32_t connection_key, uint32_t 
   request_ctrl_.terminateRequest(corr_id, connection_key, true);
 }
 
-bool ApplicationManagerImpl::ManageMobileCommand(
-    const commands::MessageSharedPtr message,
-    commands::Command::CommandOrigin origin) {
-  LOG4CXX_AUTO_TRACE(logger_);
+bool ApplicationManagerImpl::ManageMobileCommand(const commands::MessageSharedPtr message,commands::Command::CommandOrigin origin) 
+{
+	LOG4CXX_AUTO_TRACE(logger_);
 
-  if (!message) {
-    LOG4CXX_WARN(logger_, "RET Null-pointer message received.");
-    return false;
-  }
+	if(!message) 
+	{
+		LOG4CXX_WARN(logger_, "RET Null-pointer message received.");
+		return false;
+	}
 
-  if (IsLowVoltage()) {
-    LOG4CXX_WARN(logger_, "Low Voltage is active");
-    return false;
-  }
+	if(IsLowVoltage()) 
+	{
+		LOG4CXX_WARN(logger_, "Low Voltage is active");
+		return false;
+	}
 #ifdef DEBUG
-  MessageHelper::PrintSmartObject(*message);
+	MessageHelper::PrintSmartObject(*message);
 #endif
 
-  LOG4CXX_INFO(logger_, "Trying to create message in mobile factory.");
-  utils::SharedPtr<commands::Command> command(
-          MobileCommandFactory::CreateCommand(message, origin));
+	LOG4CXX_INFO(logger_, "Trying to create message in mobile factory.");
+	utils::SharedPtr<commands::Command> command(MobileCommandFactory::CreateCommand(message, origin));
 
-  if (!command) {
-    LOG4CXX_WARN(logger_, "RET  Failed to create mobile command from smart object");
-    return false;
-  }
+	if(!command) 
+	{
+		LOG4CXX_WARN(logger_, "RET  Failed to create mobile command from smart object");
+		return false;
+	}
 
-  mobile_apis::FunctionID::eType function_id =
-    static_cast<mobile_apis::FunctionID::eType>(
-      (*message)[strings::params][strings::function_id].asInt());
+	mobile_apis::FunctionID::eType function_id = static_cast<mobile_apis::FunctionID::eType>((*message)[strings::params][strings::function_id].asInt());
 
-  // Notifications from HMI have no such parameter
-  uint32_t correlation_id =
-    (*message)[strings::params].keyExists(strings::correlation_id)
-    ? (*message)[strings::params][strings::correlation_id].asUInt()
-    : 0;
+	// Notifications from HMI have no such parameter
+	uint32_t correlation_id =(*message)[strings::params].keyExists(strings::correlation_id)? (*message)[strings::params][strings::correlation_id].asUInt(): 0;
 
-  uint32_t connection_key =
-    (*message)[strings::params][strings::connection_key].asUInt();
+	uint32_t connection_key = (*message)[strings::params][strings::connection_key].asUInt();
 
-  int32_t protocol_type =
-    (*message)[strings::params][strings::protocol_type].asUInt();
+	int32_t protocol_type = (*message)[strings::params][strings::protocol_type].asUInt();
 
-  ApplicationSharedPtr app;
-  int32_t message_type = (*message)[strings::params][strings::message_type].asInt();
+	ApplicationSharedPtr app;
+	int32_t message_type = (*message)[strings::params][strings::message_type].asInt();
 
-  if (((mobile_apis::FunctionID::RegisterAppInterfaceID != function_id) &&
-       (protocol_type == commands::CommandImpl::mobile_protocol_type_)) &&
-      (mobile_apis::FunctionID::UnregisterAppInterfaceID != function_id)) {
-    app = ApplicationManagerImpl::instance()->application(connection_key);
-    if (!app) {
-      LOG4CXX_ERROR_EXT(logger_, "RET APPLICATION_NOT_REGISTERED");
-      smart_objects::SmartObjectSPtr response =
-          MessageHelper::CreateNegativeResponse(connection_key,
-                                                static_cast<int32_t>(function_id),
-                                                correlation_id,
-                                                static_cast<int32_t>(mobile_apis::Result::APPLICATION_NOT_REGISTERED));
+	if(((mobile_apis::FunctionID::RegisterAppInterfaceID != function_id) &&(protocol_type == commands::CommandImpl::mobile_protocol_type_)) &&(mobile_apis::FunctionID::UnregisterAppInterfaceID != function_id)) 
+	{
+		app = ApplicationManagerImpl::instance()->application(connection_key);
+		if(!app) 
+		{
+			LOG4CXX_ERROR_EXT(logger_, "RET APPLICATION_NOT_REGISTERED");
+			smart_objects::SmartObjectSPtr response =MessageHelper::CreateNegativeResponse(connection_key,
+													static_cast<int32_t>(function_id),
+													correlation_id,
+													static_cast<int32_t>(mobile_apis::Result::APPLICATION_NOT_REGISTERED));
 
-      SendMessageToMobile(response);
-      return false;
-    }
+			SendMessageToMobile(response);
+			return false;
+		}
 
-    // Message for "CheckPermission" must be with attached schema
-    mobile_so_factory().attachSchema(*message);
-  }
+		// Message for "CheckPermission" must be with attached schema
+		mobile_so_factory().attachSchema(*message);
+	}
 
-  if (message_type ==
-      mobile_apis::messageType::response) {
-    if (command->Init()) {
-      command->Run();
-      command->CleanUp();
-    }
-    return true;
-  }
-  if (message_type ==
-      mobile_apis::messageType::notification) {
-    request_ctrl_.addNotification(command);
-    if (command->Init()) {
-      command->Run();
-      if (command->CleanUp()) {
-        request_ctrl_.removeNotification(command.get());
-      }
+	if(message_type == mobile_apis::messageType::response) 
+	{
+		if(command->Init()) 
+		{
+			command->Run();
+			command->CleanUp();
+		}
+		return true;
+	}
+	
+	if(message_type == mobile_apis::messageType::notification) 
+	{
+		request_ctrl_.addNotification(command);
+		if(command->Init()) 
+		{
+			command->Run();
+			if(command->CleanUp()) 
+			{
+				request_ctrl_.removeNotification(command.get());
+			}
       // If CleanUp returned false notification should remove it self.
-    }
-    return true;
-  }
+		}
+		return true;
+	}
 
-  if (message_type ==
-      mobile_apis::messageType::request) {
+	if(message_type == mobile_apis::messageType::request) 
+	{
+		// commands will be launched from requesr_ctrl
+		mobile_apis::HMILevel::eType app_hmi_level = mobile_apis::HMILevel::INVALID_ENUM;
+		if(app) 
+		{
+			app_hmi_level = app->hmi_level();
+		}
 
-    // commands will be launched from requesr_ctrl
-    mobile_apis::HMILevel::eType app_hmi_level = mobile_apis::HMILevel::INVALID_ENUM;
-    if (app) {
-      app_hmi_level = app->hmi_level();
-    }
+		// commands will be launched from request_ctrl
 
-    // commands will be launched from request_ctrl
+		const request_controller::RequestController::TResult result =request_ctrl_.addMobileRequest(command, app_hmi_level);
 
-    const request_controller::RequestController::TResult result =
-      request_ctrl_.addMobileRequest(command, app_hmi_level);
+		if(result == request_controller::RequestController::SUCCESS) 
+		{
+			LOG4CXX_INFO(logger_, "Perform request");
+		}
+		else if (result == request_controller::RequestController::TOO_MANY_PENDING_REQUESTS) 
+		{
+			LOG4CXX_ERROR_EXT(logger_, "RET  Unable top perform request: " <<"TOO_MANY_PENDING_REQUESTS");
 
-    if (result == request_controller::RequestController::SUCCESS) {
-      LOG4CXX_INFO(logger_, "Perform request");
-    } else if (result ==
-               request_controller::RequestController::
-               TOO_MANY_PENDING_REQUESTS) {
-      LOG4CXX_ERROR_EXT(logger_, "RET  Unable top perform request: " <<
-                        "TOO_MANY_PENDING_REQUESTS");
+			smart_objects::SmartObjectSPtr response =MessageHelper::CreateNegativeResponse(connection_key,
+													static_cast<int32_t>(function_id),
+													correlation_id,
+													static_cast<int32_t>(mobile_apis::Result::TOO_MANY_PENDING_REQUESTS));
 
-      smart_objects::SmartObjectSPtr response =
-          MessageHelper::CreateNegativeResponse(connection_key,
-                                                static_cast<int32_t>(function_id),
-                                                correlation_id,
-                                                static_cast<int32_t>(mobile_apis::Result::TOO_MANY_PENDING_REQUESTS));
+			SendMessageToMobile(response);
+			return false;
+		} 
+		else if (result ==request_controller::RequestController::TOO_MANY_REQUESTS) 
+		{
+			LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: " <<"TOO_MANY_REQUESTS");
 
-      SendMessageToMobile(response);
-      return false;
-    } else if (result ==
-               request_controller::RequestController::TOO_MANY_REQUESTS) {
-      LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: " <<
-                        "TOO_MANY_REQUESTS");
+			MessageHelper::SendOnAppInterfaceUnregisteredNotificationToMobile(connection_key,mobile_api::AppInterfaceUnregisteredReason::TOO_MANY_REQUESTS);
 
-      MessageHelper::SendOnAppInterfaceUnregisteredNotificationToMobile(
-        connection_key,
-        mobile_api::AppInterfaceUnregisteredReason::TOO_MANY_REQUESTS);
+			UnregisterApplication(connection_key,mobile_apis::Result::TOO_MANY_PENDING_REQUESTS,false);
+			return false;
+		} 
+		else if (result ==request_controller::RequestController::NONE_HMI_LEVEL_MANY_REQUESTS) 
+		{
+			LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: " <<"REQUEST_WHILE_IN_NONE_HMI_LEVEL");
 
-      UnregisterApplication(connection_key,
-                            mobile_apis::Result::TOO_MANY_PENDING_REQUESTS,
-                            false);
-      return false;
-    } else if (result ==
-               request_controller::RequestController::
-               NONE_HMI_LEVEL_MANY_REQUESTS) {
-      LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: " <<
-                        "REQUEST_WHILE_IN_NONE_HMI_LEVEL");
+			MessageHelper::SendOnAppInterfaceUnregisteredNotificationToMobile(connection_key, mobile_api::AppInterfaceUnregisteredReason::REQUEST_WHILE_IN_NONE_HMI_LEVEL);
 
-      MessageHelper::SendOnAppInterfaceUnregisteredNotificationToMobile(
-        connection_key, mobile_api::AppInterfaceUnregisteredReason::
-        REQUEST_WHILE_IN_NONE_HMI_LEVEL);
+			ApplicationSharedPtr app_ptr = application(connection_key);
+			if(app_ptr)
+			{
+				app_ptr->usage_report().RecordRemovalsForBadBehavior();
+			}
+			UnregisterApplication(connection_key, mobile_apis::Result::INVALID_ENUM,false);
+			return false;
+		} 
+		else 
+		{
+			LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: Unknown case");
+			return false;
+		}
+		return true;
+	}
 
-      ApplicationSharedPtr app_ptr = application(connection_key);
-      if(app_ptr) {
-        app_ptr->usage_report().RecordRemovalsForBadBehavior();
-      }
-      UnregisterApplication(connection_key, mobile_apis::Result::INVALID_ENUM,
-                            false);
-      return false;
-    } else {
-      LOG4CXX_ERROR_EXT(logger_, "RET  Unable to perform request: Unknown case");
-      return false;
-    }
-    return true;
-  }
-
-  LOG4CXX_ERROR(logger_, "RET  UNKNOWN MESSAGE TYPE " << message_type);
-  return false;
+	LOG4CXX_ERROR(logger_, "RET  UNKNOWN MESSAGE TYPE " << message_type);
+	return false;
 }
 
 void ApplicationManagerImpl::SendMessageToHMI(
@@ -1551,42 +1541,50 @@ bool ApplicationManagerImpl::Init() {
   return true;
 }
 
-bool ApplicationManagerImpl::ConvertMessageToSO(
-  const Message& message, smart_objects::SmartObject& output) {
-  LOG4CXX_INFO(
-    logger_,
-    "\t\t\tMessage to convert: protocol " << message.protocol_version()
-    << "; json " << message.json_message());
+bool ApplicationManagerImpl::ConvertMessageToSO(const Message& message, smart_objects::SmartObject& output) 
+{
+	LOG4CXX_INFO(logger_,"\t\t\tMessage to convert: protocol " << message.protocol_version()<< "; json " << message.json_message());
 
-  switch (message.protocol_version()) {
-    case ProtocolVersion::kV4:
-    case ProtocolVersion::kV3:
-    case ProtocolVersion::kV2: {
-        const bool conversion_result =
-            formatters::CFormatterJsonSDLRPCv2::fromString(
-            message.json_message(), output, message.function_id(),
-            message.type(), message.correlation_id());
-        if (!conversion_result
-            || !mobile_so_factory().attachSchema(output)
-            || ((output.validate() != smart_objects::Errors::OK)) ) {
-          LOG4CXX_WARN(logger_, "Failed to parse string to smart object :"
-                       << message.json_message());
-          utils::SharedPtr<smart_objects::SmartObject> response(
-                MessageHelper::CreateNegativeResponse(
-                  message.connection_key(), message.function_id(),
-                  message.correlation_id(), mobile_apis::Result::INVALID_DATA));
-          ManageMobileCommand(response);
-          return false;
-        }
-      LOG4CXX_INFO(
-        logger_,
-        "Convertion result for sdl object is true" << " function_id "
-        << output[jhs::S_PARAMS][jhs::S_FUNCTION_ID].asInt());
-      output[strings::params][strings::connection_key] =
-        message.connection_key();
-      output[strings::params][strings::protocol_version] =
-        message.protocol_version();
-      if (message.binary_data()) {
+	switch(message.protocol_version()) 
+	{
+		case ProtocolVersion::kV4:
+		case ProtocolVersion::kV3:
+		case ProtocolVersion::kV2: 
+			{
+				const bool conversion_result = formatters::CFormatterJsonSDLRPCv2::fromString(message.json_message(), output, message.function_id(),message.type(), message.correlation_id());
+				
+				LOG4CXX_INFO(logger_, "json_message:"<<message.json_message());
+				LOG4CXX_INFO(logger_, "output:"<<output);
+				LOG4CXX_INFO(logger_, "message.function_id():"<<message.function_id());
+				LOG4CXX_INFO(logger_, "message.type():"<<message.type());
+				LOG4CXX_INFO(logger_, "message.correlation_id():"<<message.correlation_id());
+				
+				if(!conversion_result)
+				{
+					LOG4CXX_WARN(logger_, "!conversion_result");
+				}
+				if(!mobile_so_factory().attachSchema(output))
+				{
+					LOG4CXX_WARN(logger_, "!mobile_so_factory().attachSchema(output)");
+				}
+				if((output.validate() != smart_objects::Errors::OK))
+				{
+					LOG4CXX_WARN(logger_, "(output.validate() != smart_objects::Errors::OK)");
+				}
+				
+				if(!conversion_result|| !mobile_so_factory().attachSchema(output)|| ((output.validate() != smart_objects::Errors::OK)) ) 
+				{
+					LOG4CXX_WARN(logger_, "Failed to parse string to smart object :"<< message.json_message());
+					utils::SharedPtr<smart_objects::SmartObject> response(MessageHelper::CreateNegativeResponse(message.connection_key(), message.function_id(),message.correlation_id(), mobile_apis::Result::INVALID_DATA));
+					ManageMobileCommand(response);
+					return false;
+				}
+				LOG4CXX_INFO(logger_,"Convertion result for sdl object is true" << " function_id "<< output[jhs::S_PARAMS][jhs::S_FUNCTION_ID].asInt());
+				
+				output[strings::params][strings::connection_key] = message.connection_key();
+				output[strings::params][strings::protocol_version] = message.protocol_version();
+				if(message.binary_data()) 
+				{
         if (message.payload_size() < message.data_size()) {
           LOG4CXX_ERROR(logger_, "Incomplete binary" <<
                                 " binary size should be  " << message.data_size() <<
