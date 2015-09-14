@@ -185,24 +185,58 @@ static VehicleInfo_Requests ivi_subrequests[] = {
 
 std::string MessageHelper::CommonLanguageToString(
   hmi_apis::Common_Language::eType language) {
-  using namespace NsSmartDeviceLink::NsSmartObjects;
-  const char* str = 0;
-  if (EnumConversionHelper<hmi_apis::Common_Language::eType>::EnumToCString(
-        language, &str)) {
-    return str ? str : "";
+  switch (language) {
+    case hmi_apis::Common_Language::EN_US:
+      return "en-us";
+    case hmi_apis::Common_Language::ES_MX:
+      return "es-mx";
+    case hmi_apis::Common_Language::FR_CA:
+      return "fr-ca";
+    case hmi_apis::Common_Language::DE_DE:
+      return "de-de";
+    case hmi_apis::Common_Language::ES_ES:
+      return "es-es";
+    case hmi_apis::Common_Language::EN_GB:
+      return "en-gb";
+    case hmi_apis::Common_Language::RU_RU:
+      return "ru-ru";
+    case hmi_apis::Common_Language::TR_TR:
+      return "tr-tr";
+    case hmi_apis::Common_Language::PL_PL:
+      return "pl-pl";
+    case hmi_apis::Common_Language::FR_FR:
+      return "fr-fr";
+    case hmi_apis::Common_Language::IT_IT:
+      return "it-it";
+    case hmi_apis::Common_Language::SV_SE:
+      return "sv-se";
+    case hmi_apis::Common_Language::PT_PT:
+      return "pt-pt";
+    case hmi_apis::Common_Language::NL_NL:
+      return "nl-nl";
+    case hmi_apis::Common_Language::EN_AU:
+      return "en-au";
+    case hmi_apis::Common_Language::ZH_CN:
+      return "zh-cn";
+    case hmi_apis::Common_Language::ZH_TW:
+      return "zh-tw";
+    case hmi_apis::Common_Language::JA_JP:
+      return "ja-jp";
+    case hmi_apis::Common_Language::AR_SA:
+      return "as-sa";
+    case hmi_apis::Common_Language::KO_KR:
+      return "ko-kr";
+    case hmi_apis::Common_Language::PT_BR:
+      return "pt-br";
+    case hmi_apis::Common_Language::CS_CZ:
+      return "cs-cz";
+    case hmi_apis::Common_Language::DA_DK:
+      return "da-dk";
+    case hmi_apis::Common_Language::NO_NO:
+      return "no-no";
+    default:
+      return "";
   }
-  return std::string();
-}
-
-hmi_apis::Common_Language::eType MessageHelper::CommonLanguageFromString(
-    const std::string& language) {
-  using namespace NsSmartDeviceLink::NsSmartObjects;
-  hmi_apis::Common_Language::eType value;
-  if (EnumConversionHelper<hmi_apis::Common_Language::eType>::StringToEnum(
-        language, &value)) {
-    return value;
-  }
-  return hmi_apis::Common_Language::INVALID_ENUM;
 }
 
 uint32_t MessageHelper::GetAppCommandLimit(const std::string& policy_app_id) {
@@ -345,7 +379,7 @@ void MessageHelper::SendOnAppRegisteredNotificationToHMI(
   device_info[strings::transport_type] =
       ApplicationManagerImpl::instance()->GetDeviceTransportType(transport_type);
 
-  DCHECK(ApplicationManagerImpl::instance()->ManageHMICommand(notification));
+  DCHECK(/*ApplicationManagerImpl::instance()->ManageHMICommand(notification)*/true);
 }
 
 smart_objects::SmartObjectSPtr MessageHelper::GetHashUpdateNotification(
@@ -712,7 +746,7 @@ smart_objects::SmartObjectList MessageHelper::GetIVISubscriptionRequests(
 
 void MessageHelper::SendOnButtonSubscriptionNotification(
     uint32_t app_id, hmi_apis::Common_ButtonName::eType button, bool is_subscribed) {
-  using namespace smart_objects;
+  /*using namespace smart_objects;
   using namespace hmi_apis;
   LOG4CXX_AUTO_TRACE(logger_);
 
@@ -740,7 +774,8 @@ void MessageHelper::SendOnButtonSubscriptionNotification(
 
   if (!ApplicationManagerImpl::instance()->ManageHMICommand(notification_ptr)) {
     LOG4CXX_ERROR(logger_, "Unable to send HMI notification");
-  }
+  }*/
+ return ;   
 }
 
 void MessageHelper::SendAllOnButtonSubscriptionNotificationsForApp(
@@ -867,7 +902,7 @@ smart_objects::SmartObjectList MessageHelper::CreateGlobalPropertiesRequestsToHM
 
     requests.push_back(ui_global_properties);
   }
-
+/*
   // TTS global properties
   if (app->help_prompt() || app->timeout_prompt()) {
     smart_objects::SmartObjectSPtr tts_global_properties =
@@ -901,13 +936,13 @@ smart_objects::SmartObjectList MessageHelper::CreateGlobalPropertiesRequestsToHM
     (*tts_global_properties)[strings::msg_params] = tts_msg_params;
 
     requests.push_back(tts_global_properties);
-  }
+  }*/
   return requests;
 }
 
 void MessageHelper::SendTTSGlobalProperties(
     ApplicationSharedPtr app, bool default_help_prompt) {
-  LOG4CXX_AUTO_TRACE(logger_);
+  /*LOG4CXX_AUTO_TRACE(logger_);
   if (!app) {
     return;
   }
@@ -949,7 +984,8 @@ void MessageHelper::SendTTSGlobalProperties(
     msg_params[strings::app_id] = app->app_id();
     so_to_send[strings::msg_params] = msg_params;
     ApplicationManagerImpl::instance()->ManageHMICommand(tts_global_properties);
-  }
+  }*/
+    return ;
 }
 
 smart_objects::SmartObjectSPtr MessageHelper::CreateAppVrHelp(
@@ -1157,7 +1193,7 @@ smart_objects::SmartObjectSPtr MessageHelper::CreateChangeRegistration(
 }
 
 void MessageHelper::SendUIChangeRegistrationRequestToHMI(ApplicationConstSharedPtr app) {
-  if (!app.valid()) {
+  /*if (!app.valid()) {
     LOG4CXX_ERROR(logger_, "Application is not valid");
     return;
   }
@@ -1170,11 +1206,12 @@ void MessageHelper::SendUIChangeRegistrationRequestToHMI(ApplicationConstSharedP
     if (ui_command) {
       ApplicationManagerImpl::instance()->ManageHMICommand(ui_command);
     }
-  }
+  }*/
+    return ;
 }
 
 void MessageHelper::SendChangeRegistrationRequestToHMI(ApplicationConstSharedPtr app) {
-  if (!app.valid()) {
+  /*if (!app.valid()) {
     return;
   }
   if (mobile_apis::Language::INVALID_ENUM != app->language()) {
@@ -1206,7 +1243,8 @@ void MessageHelper::SendChangeRegistrationRequestToHMI(ApplicationConstSharedPtr
       ApplicationManagerImpl::instance()->ManageHMICommand(ui_command);
     }
 
-  }
+  }*/
+ return ;   
 }
 
 void MessageHelper::SendAddVRCommandToHMI(
@@ -1638,6 +1676,12 @@ void MessageHelper::SendGetUserFriendlyMessageResponse(
   smart_objects::SmartObject& user_friendly_messages =
     (*message)[strings::msg_params][messages];
 
+
+  const std::string tts = "ttsString";
+  const std::string label = "label";
+  const std::string line1 = "line1";
+  const std::string line2 = "line2";
+  const std::string textBody = "textBody";
   const std::string message_code = "messageCode";
 
   std::vector<policy::UserFriendlyMessage>::const_iterator it = msg.begin();
@@ -1648,6 +1692,22 @@ void MessageHelper::SendGetUserFriendlyMessageResponse(
 
     smart_objects::SmartObject& obj = user_friendly_messages[index];
     obj[message_code] = it->message_code;
+
+    if (!it->tts.empty()) {
+      obj[tts] = it->tts;
+    }
+    if (!it->label.empty()) {
+      obj[label] = it->label;
+    }
+    if (!it->line1.empty()) {
+      obj[line1] = it->line1;
+    }
+    if (!it->line2.empty()) {
+      obj[line2] = it->line2;
+    }
+    if (!it->text_body.empty()) {
+      obj[textBody] = it->text_body;
+    }
   }
 
   ApplicationManagerImpl::instance()->ManageHMICommand(message);
